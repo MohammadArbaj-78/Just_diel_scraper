@@ -6,6 +6,7 @@ import time
 import random
 import sys
 import os
+import pandas as pd
 from selenium.webdriver.common.action_chains import ActionChains
 
 count=0
@@ -23,9 +24,7 @@ def human_behavior(driver):
         actions.move_by_offset(-x_offset, -y_offset).perform() 
         time.sleep(random.uniform(0.5, 1.5))
 
-    # step 2: if show any job kart place mouse over it (special to job)
     try:
-        # On job, job title 'a' tag and .title' avalaible in class
         elements = driver.find_elements(uc.By.CSS_SELECTOR, "a.title, .jobTuple")
         if elements:
             target = random.choice(elements[:3])
@@ -103,18 +102,44 @@ def scrape_site(url):
             driver.execute_script(f"window.scrollBy(0, 800);")
             time.sleep(random.uniform(1,4))
 
-        # human_behavior(driver)
-
-        # mager data consume scrolling human behavior and undetected crome drive 10 mp
+        human_behavior(driver)
 
 # -----------------------------------------------------------------------------------------------------------
         count=0
-        elem=driver.find_elements(By.CSS_SELECTOR,'div.jsx-17aafc05bdbc2ecd.resultbox_textbox')
+        data_list=[]
+        elem=driver.find_elements(By.CLASS_NAME,'resultbox_textbox')
         for el in elem:
-            print(el.text,'\n')
+            name=el.find_element(By.CLASS_NAME,'resultbox_title_anchor')
+            ratings=el.find_element(By.CLASS_NAME,'resultbox_countrate')
+            add=el.find_element(By.CLASS_NAME,'locatcity')
+            try:
+               num=el.find_element(By.CLASS_NAME,'callNowAnchor').text 
+            except:
+               num="not found"
+
+            dic_data={
+                     "Name":name.text,
+                     "Ratings":ratings.text,
+                     "Address":add.text,
+                     "Number":num
+                    }
             count+=1
+            data_list.append(dic_data)
 
         print(f"Total Found : {count}")
+
+        data=pd.DataFrame(data_list)
+
+        print(data)
+
+        base_dir = os.path.join(os.getcwd(), "data")
+        os.makedirs(base_dir, exist_ok=True)
+
+        csv_path = os.path.join(base_dir, "CSV.csv")
+
+        data.to_csv(csv_path, index=False, encoding='utf-8')
+
+        print("csv file created succesfully")
 
 # -----------------------------------------------------------------------------------------------------------
 
@@ -126,10 +151,10 @@ def scrape_site(url):
     finally:
         try:
             driver.quit()
-        except:
-            pass
+            time.sleep(2)
+        except Exception as e:
+            print(e)
         print("Complete Cleanup.")
-        os._exit(0) # to exite immediatly without error
 
 if __name__ == "__main__":
         scrape_site("https://www.justdial.com/Indore/Marketing-Agencies/nct-10312406?trkid=212-remotecity-fcat-catsle&term=Marketing%20Agencies&cbflg=")
